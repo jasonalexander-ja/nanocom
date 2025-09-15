@@ -13,6 +13,7 @@ pub mod commands;
 pub mod utils;
 pub mod state;
 pub mod inputstream;
+pub mod terminal;
 
 
 fn main() {
@@ -52,22 +53,19 @@ fn main_event_loop(state: &mut State) {
                 break;
             }
         }
-        match try_get_chart(state) {
-            Ok(Some(c)) => {
-                print!("{}", c);
-                let _ = std::io::stdout().flush();
-            }
+        match try_get_char(state) {
+            Ok(Some(c)) => terminal::print_char(c),
             Ok(None) => continue,
             Err(_) => return
         }
     }
 }
 
-fn try_get_chart(state: &mut State) -> Result<Option<char>, ()> {
+fn try_get_char(state: &mut State) -> Result<Option<u8>, ()> {
     let mut buf = [0u8];
     match state.port.read(&mut buf) {
         Ok(0) => Ok(None),
-        Ok(1..) => Ok(Some(buf[0] as char)),
+        Ok(1..) => Ok(Some(buf[0])),
         Err(e) if e.kind() == ErrorKind::UnexpectedEof => Ok(None),
         Err(e) if e.kind() == ErrorKind::TimedOut => Ok(None),
         Err(e) => {
@@ -85,6 +83,11 @@ fn handle_input(key: Key,
     if seq.len() == 0 { return Ok(()); }
     if vec![27, 91, 50, 56, 126] == seq  { return Ok(()); }
     if commands::handle_escape(&seq, state, input_stream)? { return Ok(()) }
+    if state.local_echo {
+        for i in seq.iter() {
+            terminal::print_char(*i);
+        }
+    }
     match state.port.write(&seq) {
         Ok(_) => Ok(()),
         Err(e) => {
@@ -100,9 +103,3 @@ pub enum HandleError {
     Recoverable,
     FailedToWrite,
 }
-
-
-
-
-
-
