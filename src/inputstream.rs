@@ -20,14 +20,14 @@ impl InputStream {
         let handle = thread::spawn(move || {
             let term = Term::stdout();
             loop {
-                let c = match term.read_key_raw() {
-                    Ok(c) => c,
-                    Err(_) => return
-                };
                 match shtdwn_recv.try_recv() {
                     Err(TryRecvError::Disconnected) | Ok(_) => return,
                     _ => () 
                 }
+                let c = match term.read_key_raw() {
+                    Ok(c) => c,
+                    Err(_) => return
+                };
                 if let Err(_) = char_sender.send(c) { return };
             }
         });
