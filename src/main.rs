@@ -45,7 +45,7 @@ fn main_event_loop(state: &mut State) {
                 Ok(c) => c,
                 Err(_) => {
                     println!("*** Input stream disconected exiting. ");
-                    return;
+                    break;
                 }
             };
             let result = handle_input(c, state, &input_stream);
@@ -56,9 +56,11 @@ fn main_event_loop(state: &mut State) {
         match try_get_char(state) {
             Ok(Some(c)) => terminal::print_char(c),
             Ok(None) => continue,
-            Err(_) => return
+            Err(_) => break
         }
     }
+
+    input_stream.cleanup();
 }
 
 fn try_get_char(state: &mut State) -> Result<Option<u8>, ()> {

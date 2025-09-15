@@ -1,19 +1,21 @@
 use std::io::Write;
 use std::thread::{self, JoinHandle};
-use std::sync::mpsc::{self, Receiver, TryRecvError};
+use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 
 use super::utils::get_ascii_byte;
 
 use console::{Key, Term};
 
 pub struct InputStream {
-    _handle: JoinHandle<()>,
-    char_recv: Receiver<Key>
+    handle: JoinHandle<()>,
+    char_recv: Receiver<Key>,
+    shtdwn_sender: Sender<()>
 }
 
 impl InputStream {
     pub fn new() -> InputStream {
         let (char_sender, char_recv) = mpsc::channel::<Key>();
+        let (shtdwn_sender, shtdwn_recv) = mpsc::channel::<()>();
 
         let handle = thread::spawn(move || {
             let term = Term::stdout();
@@ -22,11 +24,15 @@ impl InputStream {
                     Ok(c) => c,
                     Err(_) => return
                 };
+                match shtdwn_recv.try_recv() {
+                    Err(TryRecvError::Disconnected) | Ok(_) => return,
+                    _ => () 
+                }
                 if let Err(_) = char_sender.send(c) { return };
             }
         });
 
-        InputStream { _handle: handle, char_recv }
+        InputStream { handle, char_recv, shtdwn_sender }
     }
 
     pub fn get_char(&self) -> Option<Result<Key, ()>> {
@@ -56,6 +62,11 @@ impl InputStream {
                 _ => continue
             };
         }
+    }
+
+    pub fn cleanup(self) {
+        let _ = self.shtdwn_sender.send(());
+        let _ = self.handle.join();
     }
 }
 

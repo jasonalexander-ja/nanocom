@@ -8,10 +8,10 @@ pub struct Args {
     #[arg(long, default_value_t = 9600, short)]
     pub baud: u32,
     /// Defines the flow-control mode to set the serial-port to.
-    #[arg(long, default_value_t = FlowControl::n, short)]
+    #[arg(long, default_value_t = FlowControl::N, short)]
     pub flow: FlowControl,
     /// Defines the flow-control mode to set the serial-port to.
-    #[arg(long, default_value_t = Parity::n, short)]
+    #[arg(long, default_value_t = Parity::N, short)]
     pub parity: Parity,
     /// Defines the number of data bits in every character.
     #[arg(value_parser = clap::value_parser!(u8).range(5..=8), long, default_value_t = 8, short)]
@@ -72,27 +72,27 @@ impl Args {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Parser)]
 pub enum FlowControl {
     /// xon/xoff (software) mode
-    x,
+    X,
     /// hardware flow control (RTS/CTS)
-    h,
+    H,
     /// no flow control 
-    n,
+    N,
 }
 
 impl FlowControl {
     pub fn to_serialport(&self) -> serialport::FlowControl {
         match self {
-            FlowControl::h => serialport::FlowControl::Hardware,
-            FlowControl::x => serialport::FlowControl::Software,
-            FlowControl::n => serialport::FlowControl::None
+            FlowControl::H => serialport::FlowControl::Hardware,
+            FlowControl::X => serialport::FlowControl::Software,
+            FlowControl::N => serialport::FlowControl::None
         }
     }
 
     pub fn show(&self) -> &str {
         match self {
-            FlowControl::x => "xon/xoff",
-            FlowControl::h => "hardware",
-            FlowControl::n => "none",
+            FlowControl::X => "xon/xoff",
+            FlowControl::H => "hardware",
+            FlowControl::N => "none",
         }
     }
 }
@@ -100,9 +100,9 @@ impl FlowControl {
 impl Display for FlowControl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            FlowControl::x => write!(f, "x"),
-            FlowControl::h => write!(f, "h"),
-            FlowControl::n => write!(f, "n"),
+            FlowControl::X => write!(f, "x"),
+            FlowControl::H => write!(f, "h"),
+            FlowControl::N => write!(f, "n"),
         }
     }
 }
@@ -111,27 +111,27 @@ impl Display for FlowControl {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Parity {
     /// odd parity mode
-    o,
+    O,
     /// for even parity mode
-    e,
+    E,
     /// no parity mode
-    n,
+    N,
 }
 
 impl Parity {
     pub fn to_serialport(&self) -> serialport::Parity {
         match self {
-            Parity::o => serialport::Parity::Odd,
-            Parity::e => serialport::Parity::Even,
-            Parity::n => serialport::Parity::None
+            Parity::O => serialport::Parity::Odd,
+            Parity::E => serialport::Parity::Even,
+            Parity::N => serialport::Parity::None
         }
     }
 
     pub fn show(&self) -> &str {
         match self {
-            Parity::o => "odd",
-            Parity::e => "even",
-            Parity::n => "none",
+            Parity::O => "odd",
+            Parity::E => "even",
+            Parity::N => "none",
         }
     }
 }
@@ -139,9 +139,9 @@ impl Parity {
 impl Display for Parity {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Parity::o => write!(f, "o"),
-            Parity::e => write!(f, "e"),
-            Parity::n => write!(f, "n"),
+            Parity::O => write!(f, "o"),
+            Parity::E => write!(f, "e"),
+            Parity::N => write!(f, "n"),
         }
     }
 }
