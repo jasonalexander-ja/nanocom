@@ -1,5 +1,4 @@
 use std::fmt::{self, Display};
-
 use clap::{Parser, ValueEnum};
 
 #[derive(Parser)]
@@ -7,7 +6,7 @@ use clap::{Parser, ValueEnum};
 pub struct Args {
     /// Defines the baud-rate to set the serial-port (terminal) to. 
     #[arg(long, default_value_t = 9600, short)]
-    pub baud: usize,
+    pub baud: u32,
     /// Defines the flow-control mode to set the serial-port to.
     #[arg(long, default_value_t = FlowControl::n, short)]
     pub flow: FlowControl,
@@ -45,17 +44,27 @@ pub struct Args {
 
 impl Args {
     pub fn show_state(&self) -> String {
-        let mut res = format!("");
-        res += &format!("port is        : {}\r\n", self.port);
-        res += &format!("flowcontrol    : {}\r\n", self.flow.show());
-        res += &format!("baudrate is    : {}\r\n", self.baud);
-        res += &format!("parity is      : {}\r\n", self.parity.show());
-        res += &format!("databits are   : {}\r\n", self.databits);
-        res += &format!("escape is      : C-{}\r\n", self.escape);
-        res += &format!("noinit is      : {}\r\n", if self.noinit { "no" } else { "yes" });
-        res += &format!("noreset is     : {}\r\n", if self.noreset { "no" } else { "yes" });
-        res += &format!("nolock is      : {}\r\n", if self.nolock { "no" } else { "yes" });
-        res
+        format!(
+            "port is        : {}\n\r\
+            flowcontrol    : {}\r\n\
+            baudrate is    : {}\r\n\
+            parity is      : {}\r\n\
+            databits are   : {}\r\n\
+            escape is      : C-{}\r\n\
+            noinit is      : {}\r\n\
+            noreset is     : {}\r\n\
+            nolock is      : {}\r\n
+            ",
+            self.port,
+            self.flow.show(),
+            self.baud,
+            self.parity.show(),
+            self.databits,
+            self.escape,
+            if self.noinit { "no" } else { "yes" },
+            if self.noreset { "no" } else { "yes" },
+            if self.nolock { "no" } else { "yes" }
+        )
     }
 }
 
@@ -71,6 +80,14 @@ pub enum FlowControl {
 }
 
 impl FlowControl {
+    pub fn to_serialport(&self) -> serialport::FlowControl {
+        match self {
+            FlowControl::h => serialport::FlowControl::Hardware,
+            FlowControl::x => serialport::FlowControl::Software,
+            FlowControl::n => serialport::FlowControl::None
+        }
+    }
+
     pub fn show(&self) -> &str {
         match self {
             FlowControl::x => "xon/xoff",
@@ -102,6 +119,14 @@ pub enum Parity {
 }
 
 impl Parity {
+    pub fn to_serialport(&self) -> serialport::Parity {
+        match self {
+            Parity::o => serialport::Parity::Odd,
+            Parity::e => serialport::Parity::Even,
+            Parity::n => serialport::Parity::None
+        }
+    }
+
     pub fn show(&self) -> &str {
         match self {
             Parity::o => "odd",

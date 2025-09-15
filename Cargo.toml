@@ -1,8 +1,17 @@
 [package]
 name = "nanocom"
 version = "0.1.0"
+authors = ["Jason Alexander <jasonalexander.dev@gmail.com>"]
 edition = "2024"
+description = "Cross platform picocom-like serial terminal emulator."
+readme = "readme.md"
+repository = "https://github.com/jasonalexander-ja/ssemu"
+license = "MIT"
+keywords = ["cli", "terminal", "terminal_emulator", "serial"]
+categories = ["command-line-interface", "command-line-utilities"]
 
 [dependencies]
 
-clap = { version = "4.0.0", features = ["derive"] }
+clap = { version = "4.0.0", features = ["derive", "help"] }
+serialport = "4.7.3"
+console = "0.16.1"
