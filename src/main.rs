@@ -36,8 +36,7 @@ fn main() {
 }
 
 fn main_event_loop(state: &mut State) {
-
-    let input_stream = InputStream::new();
+    let input_stream = InputStream::new(state.escape_code, vec![24, 27]);
 
     loop {
         if let Some(v) = input_stream.get_char() {
@@ -59,8 +58,6 @@ fn main_event_loop(state: &mut State) {
             Err(_) => break
         }
     }
-
-    input_stream.cleanup();
 }
 
 fn try_get_char(state: &mut State) -> Result<Option<u8>, ()> {
@@ -81,7 +78,7 @@ fn handle_input(key: Key,
     state: &mut State, 
     input_stream: &InputStream) -> Result<(), HandleError> 
 {
-    let seq = inputstream::get_sequence(key);
+    let seq = inputstream::get_key_sequence(key);
     if seq.len() == 0 { return Ok(()); }
     if vec![27, 91, 50, 56, 126] == seq  { return Ok(()); }
     if commands::handle_escape(&seq, state, input_stream)? { return Ok(()) }
@@ -98,7 +95,6 @@ fn handle_input(key: Key,
         }
     }
 }
-
 
 pub enum HandleError {
     Shutdown,

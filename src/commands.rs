@@ -1,6 +1,8 @@
-use std::{io::Write, thread, time::Duration};
+use std::{thread, time::Duration};
 
 use serialport::{DataBits, FlowControl, Parity, StopBits};
+
+use crate::utils::put_str;
 
 use super::{State, HandleError, InputStream, utils::BAUDS};
 
@@ -50,8 +52,7 @@ pub fn handle_command(command: u8, state: &mut State, input_stream: &InputStream
 
 pub fn set_baudrate(state: &mut State, input_stream: &InputStream) -> Result<(), HandleError> {
     loop {
-        print!("\r\n\r\n*** baud: ");
-        let _ = std::io::stdout().flush();
+        put_str("\r\n\r\n*** baud: ");
         let line = match input_stream.get_line() {
             Ok(s) => s,
             Err(_) => {
@@ -66,13 +67,7 @@ pub fn set_baudrate(state: &mut State, input_stream: &InputStream) -> Result<(),
                 continue;
             }
         };
-        match state.port.set_baud_rate(baud) {
-            Ok(_) => {
-                println!("\r\n*** baud: {} ***\r\n", baud);
-                return Ok(())
-            },
-            Err(_) => return Err(HandleError::Recoverable)
-        }
+        return update_baud(baud, state);
     }
 }
 
@@ -80,16 +75,7 @@ pub fn increase_baudrate(state: &mut State) -> Result<(), HandleError> {
     let baud = get_baud(state)?;
     for i in BAUDS.iter().rev() {
         if *i > baud {
-            match state.port.set_baud_rate(*i) {
-                Ok(_) => {
-                    println!("\r\n*** baud: {} ***\r\n", i);
-                    return Ok(());
-                },
-                Err(_) => {
-                    println!("\r\n*** Failed to set baud \r\n");
-                    return Err(HandleError::Recoverable);
-                }
-            }
+            update_baud(*i, state)?;
         }
     }
     Ok(())
@@ -99,19 +85,23 @@ pub fn decrease_baudrate(state: &mut State) -> Result<(), HandleError> {
     let baud = get_baud(state)?;
     for i in BAUDS.iter() {
         if *i < baud {
-            match state.port.set_baud_rate(*i) {
-                Ok(_) => { 
-                    println!("\r\n*** baud: {} ***\r\n", i);
-                    return Ok(());
-                },
-                Err(_) => {
-                    println!("\r\n*** Failed to set baud \r\n");
-                    return Err(HandleError::Recoverable);
-                }
-            }
+            update_baud(*i, state)?;
         }
     }
     Ok(())
+}
+
+fn update_baud(baud: u32, state: &mut State) -> Result<(), HandleError> {
+    match state.port.set_baud_rate(baud) {
+        Ok(_) => { 
+            println!("\r\n*** baud: {} ***\r\n", baud);
+            return Ok(());
+        },
+        Err(_) => {
+            println!("\r\n*** Failed to set baud \r\n");
+            return Err(HandleError::Recoverable);
+        }
+    }
 }
 
 pub fn change_databits(state: &mut State) -> Result<(), HandleError> {

@@ -68,7 +68,6 @@ impl Args {
     }
 }
 
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Parser)]
 pub enum FlowControl {
     /// xon/xoff (software) mode
@@ -106,7 +105,6 @@ impl Display for FlowControl {
         }
     }
 }
-
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Parity {

@@ -1,4 +1,3 @@
-
 use serialport::SerialPort;
 use super::utils::get_ascii_byte;
 use super::args::Args;

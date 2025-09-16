@@ -1,3 +1,5 @@
+use std::io::Write;
+
 pub const BAUDS: [u32; 30] = [
     4000000,
     3500000,
@@ -30,6 +32,21 @@ pub const BAUDS: [u32; 30] = [
     75,
     50
 ];
+
+pub fn put_char(c: char) {
+    print!("{}", c);
+    let _ = std::io::stdout().flush();
+}
+
+pub fn put_str(c: &str) {
+    print!("{}", c);
+    let _ = std::io::stdout().flush();
+}
+
+pub fn del_char() {
+    print!("\x08 \x08");
+    let _ = std::io::stdout().flush();
+}
 
 pub fn get_ascii_byte(c: char) -> u8 {
     let mut res = [0x00u8];
