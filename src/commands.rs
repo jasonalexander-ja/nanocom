@@ -75,7 +75,7 @@ pub fn increase_baudrate(state: &mut State) -> Result<(), HandleError> {
     let baud = get_baud(state)?;
     for i in BAUDS.iter().rev() {
         if *i > baud {
-            update_baud(*i, state)?;
+            return update_baud(*i, state)
         }
     }
     Ok(())
@@ -85,7 +85,7 @@ pub fn decrease_baudrate(state: &mut State) -> Result<(), HandleError> {
     let baud = get_baud(state)?;
     for i in BAUDS.iter() {
         if *i < baud {
-            update_baud(*i, state)?;
+            return update_baud(*i, state)
         }
     }
     Ok(())
