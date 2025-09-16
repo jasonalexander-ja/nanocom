@@ -58,13 +58,13 @@ fn input_stream_loop(escape: u8, shutdown_chars: Vec<char>, char_sender: Sender<
             Ok(c) => c,
             Err(_) => return
         };
+        if let Err(_) = char_sender.send(c.clone()) { return };
         if let Key::Char(c) = c {
             if shutdown_chars.contains(&c) && is_escaped { return }
             is_escaped = c == escape as char;
         } else {
             is_escaped = false;
         };
-        if let Err(_) = char_sender.send(c) { return };
     }
 }
 
