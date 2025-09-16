@@ -32,12 +32,6 @@ pub struct Args {
     /// given then "Quit" and "Exit" behave essentially the same. 
     #[arg(long, short = 'r')]
     pub noreset: bool,
-    /// If given, nanocom will *not* attempt to lock the serial port before opening it. Normally nanocom 
-    /// attempts to get a UUCP-style lock-file (e.g. "/var/lock/LCK..ttyS0") before opening the port. 
-    /// Failing to do so, results in the program exiting after emitting an error-message. It is possible 
-    /// that your nanocom binary is compiled without this option. 
-    #[arg(long, short = 'l')]
-    pub nolock: bool,
     /// The name of the serial device to be monitored. 
     pub port: String
 }
@@ -53,7 +47,6 @@ impl Args {
             escape is      : C-{}\r\n\
             noinit is      : {}\r\n\
             noreset is     : {}\r\n\
-            nolock is      : {}\r\n
             ",
             self.port,
             self.flow.show(),
@@ -62,8 +55,7 @@ impl Args {
             self.databits,
             self.escape,
             if self.noinit { "no" } else { "yes" },
-            if self.noreset { "no" } else { "yes" },
-            if self.nolock { "no" } else { "yes" }
+            if self.noreset { "no" } else { "yes" }
         )
     }
 }

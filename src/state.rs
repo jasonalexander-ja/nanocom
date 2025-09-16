@@ -7,7 +7,6 @@ pub struct State {
     pub escape_code: u8,
     pub noinit: bool,
     pub noreset: bool,
-    pub nolock: bool,
     pub dtr: bool,
     pub rts: bool,
     pub command_mode: bool,
@@ -30,7 +29,6 @@ impl State {
             escape_code,
             noinit: args.noinit,
             noreset: args.noreset,
-            nolock: args.nolock,
             dtr: false,
             rts: false,
             command_mode: false,
@@ -64,6 +62,7 @@ impl State {
 fn get_serial_port(args: &Args) -> Result<Box<dyn SerialPort>, ()> {
     let port_builder = if args.noinit { 
         serialport::new(&args.port, args.baud)
+            .preserve_dtr_on_open()
     } else {
         serialport::new(&args.port, args.baud)
             .flow_control(args.flow.to_serialport())

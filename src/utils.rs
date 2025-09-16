@@ -43,6 +43,11 @@ pub fn put_str(c: &str) {
     let _ = std::io::stdout().flush();
 }
 
+pub fn put_string(c: String) {
+    print!("{}", c);
+    let _ = std::io::stdout().flush();
+}
+
 pub fn del_char() {
     print!("\x08 \x08");
     let _ = std::io::stdout().flush();

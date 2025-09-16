@@ -68,6 +68,7 @@ fn input_stream_loop(escape: u8, shutdown_chars: Vec<char>, char_sender: Sender<
     }
 }
 
+#[cfg(target_os = "windows")]
 pub fn get_key_sequence(key: Key) -> Vec<u8> {
     match key {
         Key::UnknownEscSeq(s) => s.iter().map(|a| get_ascii_byte(*a)).collect(),
@@ -80,6 +81,32 @@ pub fn get_key_sequence(key: Key) -> Vec<u8> {
         Key::Backspace => vec![127],
         Key::Home => vec![27, 91, 49, 126],
         Key::End => vec![27, 91, 52, 126],
+        Key::Tab => vec![9],
+        Key::BackTab => vec![27, 91, 90],
+        Key::Alt => vec![27, 91, 90],
+        Key::Del => vec![27, 91, 51, 126],
+        Key::Insert => vec![27, 91, 50, 126],
+        Key::PageUp => vec![27, 91, 53, 126],
+        Key::PageDown => vec![27, 91, 54, 126],
+        Key::Char(c) => vec![get_ascii_byte(c)],
+        Key::CtrlC => vec![3],
+        _ => vec![]
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn get_key_sequence(key: Key) -> Vec<u8> {
+    match key {
+        Key::UnknownEscSeq(s) => s.iter().map(|a| get_ascii_byte(*a)).collect(),
+        Key::ArrowLeft => vec![27, 91, 68],
+        Key::ArrowRight => vec![27, 91, 67],
+        Key::ArrowUp => vec![27, 91, 65],
+        Key::ArrowDown => vec![27, 91, 66],
+        Key::Enter => vec![13],
+        Key::Escape => vec![27],
+        Key::Backspace => vec![127],
+        Key::Home => vec![1],
+        Key::End => vec![5],
         Key::Tab => vec![9],
         Key::BackTab => vec![27, 91, 90],
         Key::Alt => vec![27, 91, 90],

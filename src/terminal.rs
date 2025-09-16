@@ -1,22 +1,17 @@
-use std::io::Write;
+use crate::utils::{del_char, put_string};
 
-use crate::utils::del_char;
-
-const ALLOWED_CTRL_CHARS: [u8; 3] = [
-    13,
+const ALLOWED_CTRL_CHARS: [u8; 2] = [
     27,
     9
 ];
 
 pub fn print_char(key: u8) {
     let keychar = key as char;
-    if key == 127 || key == 8 {
-        del_char();
-        return;
+    match key {
+        127 | 8 => return del_char(),
+        13 => return println!(),
+        _ if keychar.is_ascii_control() && !ALLOWED_CTRL_CHARS.contains(&key) => return,
+        _ => ()
     }
-    if keychar.is_ascii_control() && !ALLOWED_CTRL_CHARS.contains(&key) {
-        return;
-    }
-    print!("{}", keychar);
-    let _ = std::io::stdout().flush();
+    put_string(format!("{}", keychar));
 }
