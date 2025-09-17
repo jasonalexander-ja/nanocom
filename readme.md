@@ -130,6 +130,11 @@ open a pull request, message me or however you wish.
 
 Current roadmap is:
 
+* `--noreset / -r` flag
+    * This flag currently does nothing, when closing down nanocom currently just closes the port
+    and I'm not sure what the reset should do, it may very well be that this flag also disappears 
+    later. 
+
 * File send and receive
     * Picocom does this via invoking other standard unix applications, should we 
     follow this lead (it would be fairly simple to reimplement them cross platform) or bundle the 
