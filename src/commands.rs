@@ -32,8 +32,13 @@ pub(crate) fn handle_escape(seq: &Vec<u8>, state: &mut State, input_stream: &Inp
 /// Throws [HandleInputError::Shutdown] is the user sends a shutdown command. 
 fn handle_command(command: u8, state: &mut State, input_stream: &InputStream) -> Result<(), HandleInputError> {
     match command {
-        24 => Err(HandleInputError::Shutdown),
+        24 => { 
+            println!("\r\nTerminating...");
+            Err(HandleInputError::Shutdown)
+        }
         17 => {
+            println!("\r\nTerminating...");
+            println!("Skipping tty reset...");
             state.noreset = true;
             Err(HandleInputError::Shutdown)
         },
