@@ -52,7 +52,7 @@ fn poll_input(state: &mut State, input_stream: &InputStream) -> Result<(), ()> {
     let v = match input_stream.get_char() {
         Some(Ok(v)) => v,
         Some(Err(_)) => {
-            println!("*** Input stream disconected exiting. ");
+            println!("*** Input stream disconnected exiting. ");
             return Err(());
         },
         None => return  Ok(())

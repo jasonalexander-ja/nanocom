@@ -2,6 +2,7 @@ use std::io;
 
 use crate::parser::EscapeSequence;
 use crate::state::State;
+use crate::utils;
 
 
 pub fn handle_escape(parsed: EscapeSequence, state: &mut State) -> Result<(), io::Error> {
@@ -11,6 +12,7 @@ pub fn handle_escape(parsed: EscapeSequence, state: &mut State) -> Result<(), io
         EscapeSequence::ArrowLeft => state.term.move_cursor_left(1)?,
         EscapeSequence::ArrowUp => state.term.move_cursor_up(1)?,
         EscapeSequence::Home => state.term.clear_screen()?,
+        EscapeSequence::BackTab => state.term.move_cursor_left(utils::TABS)?,
         _ => (),
     };
 

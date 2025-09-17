@@ -1,9 +1,15 @@
 {
     "cSpell.words": [
+        "baudrate",
         "databits",
+        "filedes",
+        "flowcontrol",
+        "inputstream",
+        "keychar",
         "nanocom",
         "noinit",
         "noreset",
+        "stopbits",
         "xoff"
     ]
 }

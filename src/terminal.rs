@@ -1,6 +1,7 @@
 use std::io::{self, Write};
 
 use crate::state::State;
+use crate::utils::put_char;
 use crate::utils::put_string;
 use crate::parser::Parsed;
 use crate::escape;
@@ -27,7 +28,7 @@ fn handle_control_char(key: u8, state: &mut State) -> Result<(), io::Error> {
         '\x7f' | '\x08' => state.term.clear_chars(1)?,
         '\x0d' => state.term.write_line("")?,
         '\x0A' => state.term.write(b"\x0A").map(|_| ())?,
-        _ => ()
+        _ => put_char(key as char),
     }
     state.term.flush()
 }

@@ -1,6 +1,8 @@
 use std::io::Write;
 
 
+pub const TABS: usize = 8;
+
 pub const BAUDS: [u32; 30] = [
     4000000,
     3500000,

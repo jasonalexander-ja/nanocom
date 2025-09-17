@@ -56,7 +56,7 @@ pub fn set_baudrate(state: &mut State, input_stream: &InputStream) -> Result<(),
         let line = match input_stream.get_line() {
             Ok(s) => s,
             Err(_) => {
-                println!("\r\n*** Failed to read fron console, exiting. \r\n");
+                println!("\r\n*** Failed to read from console, exiting. \r\n");
                 return Err(HandleError::Shutdown)
             }
         };
@@ -280,7 +280,7 @@ pub fn help_message(state: &mut State) -> Result<(), HandleError>  {
     println!("\r\n*** nanocom commands (all prefixed by [C-{}])\r\n\
         \r\n\
         *** [C-x] : Exit nanocom\r\n\
-        *** [C-q] : Exit without reseting serial port\r\n\
+        *** [C-q] : Exit without resetting serial port\r\n\
         *** [C-b] : Set baudrate\r\n\
         *** [C-u] : Increase baudrate (baud-up)\r\n\
         *** [C-d] : Decrease baudrate (baud-down)\r\n\
