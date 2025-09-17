@@ -5,6 +5,7 @@ use crate::utils::put_char;
 use crate::utils::put_string;
 use crate::parser::Parsed;
 use crate::escape;
+use crate::utils::TABS;
 
 
 pub fn print_data_in(data: Parsed, state: &mut State) -> Result<(), io::Error> {
@@ -25,6 +26,7 @@ pub fn print_char(key: u8, state: &mut State) -> Result<(), io::Error> {
 fn handle_control_char(key: u8, state: &mut State) -> Result<(), io::Error> {
     let keychar = key as char;
     match keychar {
+        '\x09' => state.term.move_cursor_right(TABS)?,
         '\x7f' | '\x08' => state.term.clear_chars(1)?,
         '\x0d' => state.term.write_line("")?,
         '\x0A' => state.term.write(b"\x0A").map(|_| ())?,
