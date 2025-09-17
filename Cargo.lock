@@ -209,7 +209,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "nanocom"
+name = "nanocom-term"
 version = "0.1.0"
 dependencies = [
  "clap",

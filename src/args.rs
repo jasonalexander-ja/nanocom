@@ -1,6 +1,7 @@
 use std::fmt::{self, Display};
 use clap::{Parser, ValueEnum};
 
+/// Defines the arguments passed by the user at startup. 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
@@ -37,6 +38,8 @@ pub struct Args {
 }
 
 impl Args {
+
+    /// Serializes all the startup args to generate an info message at startup. 
     pub fn show_state(&self) -> String {
         format!(
             "port is        : {}\n\r\
@@ -60,6 +63,7 @@ impl Args {
     }
 }
 
+/// Options for flow control. 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Parser)]
 pub enum FlowControl {
     /// xon/xoff (software) mode
@@ -71,6 +75,7 @@ pub enum FlowControl {
 }
 
 impl FlowControl {
+    /// Converts to [serialport::FlowControl] type. 
     pub fn to_serialport(&self) -> serialport::FlowControl {
         match self {
             FlowControl::H => serialport::FlowControl::Hardware,
@@ -79,6 +84,7 @@ impl FlowControl {
         }
     }
 
+    /// Produces a human readable string of what option is selected. 
     pub fn show(&self) -> &str {
         match self {
             FlowControl::X => "xon/xoff",
@@ -98,6 +104,7 @@ impl Display for FlowControl {
     }
 }
 
+/// Possible options for parity. 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 pub enum Parity {
     /// odd parity mode
@@ -109,6 +116,7 @@ pub enum Parity {
 }
 
 impl Parity {
+    /// Converts to [serialport::FlowControl] type. 
     pub fn to_serialport(&self) -> serialport::Parity {
         match self {
             Parity::O => serialport::Parity::Odd,
@@ -117,6 +125,7 @@ impl Parity {
         }
     }
 
+    /// Produces a human readable string of what option is selected. 
     pub fn show(&self) -> &str {
         match self {
             Parity::O => "odd",

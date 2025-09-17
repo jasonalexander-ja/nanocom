@@ -6,9 +6,11 @@
         "flowcontrol",
         "inputstream",
         "keychar",
+        "minicom",
         "nanocom",
         "noinit",
         "noreset",
+        "picocom",
         "stopbits",
         "xoff"
     ]

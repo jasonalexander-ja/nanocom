@@ -1,23 +1,27 @@
 use std::io::ErrorKind;
 
-use crate::state::State;
+use console::Key;
+
+use crate::{state::State, utils};
 
 
-pub fn poll_port_parse_data(state: &mut State) -> Result<Parsed, ()> {
+/// Polls the serial port for any data, parsing any escape sequences. 
+pub fn poll_port_parse_data(state: &mut State) -> Result<SerialData, ()> {
     let v = match try_get_char(state)? {
         Some(c) => c,
-        None => return Ok(Parsed::Nothing)
+        None => return Ok(SerialData::Nothing)
     };
     let res = if v == 0x1B {
         let res = handle_escape(state)?;
-        Parsed::Escape(res)
+        SerialData::Escape(res)
     } else {
-        Parsed::Char(v)
+        SerialData::Char(v)
     };
 
     Ok(res)
 }
 
+/// Polls the serial port for a byte, displays an error message and throws if error with reading. 
 fn try_get_char(state: &mut State) -> Result<Option<u8>, ()> {
     let mut buf = [0u8];
     match state.port.read(&mut buf) {
@@ -32,6 +36,7 @@ fn try_get_char(state: &mut State) -> Result<Option<u8>, ()> {
     }
 }
 
+/// Blocking polls the serial port for a byte. 
 fn get_char(state: &mut State) -> Result<u8, ()> {
     loop {
         match try_get_char(state)? {
@@ -41,6 +46,7 @@ fn get_char(state: &mut State) -> Result<u8, ()> {
     }
 }
 
+/// Dispatches the correct escape sequence parser for the type of escape sequence. 
 pub fn handle_escape(state: &mut State) -> Result<EscapeSequence, ()> {
     let seq = vec![0x1B];
     let v = get_char(state)?;
@@ -53,12 +59,14 @@ pub fn handle_escape(state: &mut State) -> Result<EscapeSequence, ()> {
     }
 }
 
+/// Parses a single byte escape sequence. 
 pub fn handle_single(byte: u8, seq: Vec<u8>) -> Result<EscapeSequence, ()> {
     let mut seq = seq;
     seq.push(byte);
     return Ok(EscapeSequence::UnknownSeq(seq))
 }
 
+/// Parses an [OS command](https://en.wikipedia.org/wiki/ANSI_escape_code#Operating_System_Command_sequences) escape sequence. 
 pub fn handle_os(byte: u8, seq: Vec<u8>, state: &mut State) -> Result<EscapeSequence, ()> {
     let mut seq = seq;
     seq.push(byte);
@@ -66,12 +74,14 @@ pub fn handle_os(byte: u8, seq: Vec<u8>, state: &mut State) -> Result<EscapeSequ
         let v = get_char(state)?;
         seq.push(v);
         match seq[..seq.len()] {
-            [.., 0x07] | [.., 0x9C] | [0x1B, 0x5C] => return Ok(EscapeSequence::UnknownSeq(seq)),
+            [.., 0x07] | [.., 0x9C] | [0x1B, 0x5C] => 
+                return Ok(EscapeSequence::UnknownSeq(seq)),
             _ => continue
         }
     }
 }
 
+/// Handles [Control Sequence Introducer](https://en.wikipedia.org/wiki/ANSI_escape_code#Control_Sequence_Introducer_commands) sequences 
 pub fn handle_csi(byte: u8, seq: Vec<u8>, state: &mut State) -> Result<EscapeSequence, ()> {
     let mut seq = seq;
     seq.push(byte);
@@ -84,6 +94,7 @@ pub fn handle_csi(byte: u8, seq: Vec<u8>, state: &mut State) -> Result<EscapeSeq
     }
 }
 
+/// Returns the correct [EscapeSequence] option for a given CSI escape sequence. 
 pub fn match_csi(seq: Vec<u8>) -> EscapeSequence {
     let len = seq.len();
     if len != 3 && len != 4 {
@@ -105,6 +116,7 @@ pub fn match_csi(seq: Vec<u8>) -> EscapeSequence {
     }
 }
 
+/// Handles [nF](https://en.wikipedia.org/wiki/ANSI_escape_code#nF_Escape_sequences) escape sequences. 
 pub fn handle_nf(byte: u8, seq: Vec<u8>, state: &mut State) -> Result<EscapeSequence, ()> {
     let mut seq = seq;
     seq.push(byte);
@@ -117,12 +129,24 @@ pub fn handle_nf(byte: u8, seq: Vec<u8>, state: &mut State) -> Result<EscapeSequ
     }
 }
 
-pub enum Parsed {
+/// Data from reading the serial port
+pub enum SerialData {
     Char(u8),
     Nothing,
     Escape(EscapeSequence)
 }
 
+impl SerialData {
+    /// Gives the correct [SerialData] from [Key].
+    pub fn from_console_key(c: Key) -> Self {
+        match c {
+            Key::Char(c) => SerialData::Char(utils::get_ascii_byte(c)),
+            s => SerialData::Escape(EscapeSequence::from_console_key(s))
+        }
+    }
+}
+
+/// Possible escape sequences returned from the parser. 
 #[derive(Debug)]
 pub enum EscapeSequence {
     Invalid,
@@ -139,4 +163,28 @@ pub enum EscapeSequence {
     Insert,
     PageUp,
     PageDown,
+}
+
+impl EscapeSequence {
+
+    /// Gives the correct [EscapeSequence] from [Key].
+    pub fn from_console_key(c: Key) -> Self {
+        match c {
+            Key::UnknownEscSeq(s) => 
+                EscapeSequence::UnknownSeq(s.iter().map(|e| utils::get_ascii_byte(*e)).collect()),
+            Key::ArrowLeft => EscapeSequence::ArrowLeft,
+            Key::ArrowRight => EscapeSequence::ArrowRight,
+            Key::ArrowUp => EscapeSequence::ArrowUp,
+            Key::ArrowDown => EscapeSequence::ArrowDown,
+            Key::BackTab => EscapeSequence::BackTab,
+            Key::Alt => EscapeSequence::Alt,
+            Key::Home => EscapeSequence::Home,
+            Key::End => EscapeSequence::End,
+            Key::Del => EscapeSequence::Del,
+            Key::Insert => EscapeSequence::Insert,
+            Key::PageUp => EscapeSequence::PageUp,
+            Key::PageDown => EscapeSequence::PageDown,
+            _ => EscapeSequence::Invalid,
+        }
+    }
 }

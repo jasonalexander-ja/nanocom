@@ -1,10 +1,11 @@
 use std::io;
 
-use crate::parser::EscapeSequence;
+use crate::serial_in::EscapeSequence;
 use crate::state::State;
 use crate::utils;
 
 
+/// Handles escape codes received and performs a standard action on the terminal. 
 pub fn handle_escape(parsed: EscapeSequence, state: &mut State) -> Result<(), io::Error> {
     let _ = match parsed {
         EscapeSequence::ArrowDown => state.term.move_cursor_down(1)?,

@@ -2,11 +2,13 @@ use std::{thread, time::Duration};
 
 use serialport::{DataBits, FlowControl, Parity, StopBits};
 
-use crate::utils::put_str;
+use crate::utils::{put_str, BAUDS};
+use super::{State, HandleInputError, InputStream};
 
-use super::{State, HandleError, InputStream, utils::BAUDS};
 
-pub fn handle_escape(seq: &Vec<u8>, state: &mut State, input_stream: &InputStream) -> Result<bool, HandleError> {
+/// Handles user input if the escape character has been received and the program should enter/is in
+/// command mode, dispatching any commands. 
+pub(crate) fn handle_escape(seq: &Vec<u8>, state: &mut State, input_stream: &InputStream) -> Result<bool, HandleInputError> {
     if seq.len() != 1 { return Ok(false); }
     let (key, keychar) = (seq[0], seq[0] as char);
     
@@ -26,12 +28,14 @@ pub fn handle_escape(seq: &Vec<u8>, state: &mut State, input_stream: &InputStrea
     return Ok(false)
 }
 
-pub fn handle_command(command: u8, state: &mut State, input_stream: &InputStream) -> Result<(), HandleError> {
+/// Handles the command input from the user, dispatching the correct routine. 
+/// Throws [HandleInputError::Shutdown] is the user sends a shutdown command. 
+fn handle_command(command: u8, state: &mut State, input_stream: &InputStream) -> Result<(), HandleInputError> {
     match command {
-        24 => Err(HandleError::Shutdown),
+        24 => Err(HandleInputError::Shutdown),
         17 => {
             state.noreset = true;
-            Err(HandleError::Shutdown)
+            Err(HandleInputError::Shutdown)
         },
         2 => set_baudrate(state, input_stream),
         21 => increase_baudrate(state),
@@ -50,14 +54,15 @@ pub fn handle_command(command: u8, state: &mut State, input_stream: &InputStream
     }
 }
 
-pub fn set_baudrate(state: &mut State, input_stream: &InputStream) -> Result<(), HandleError> {
+/// Polls the user for a new (valid) baudrate, and updates the serial port settings. 
+fn set_baudrate(state: &mut State, input_stream: &InputStream) -> Result<(), HandleInputError> {
     loop {
         put_str("\r\n\r\n*** baud: ");
         let line = match input_stream.get_line() {
             Ok(s) => s,
             Err(_) => {
                 println!("\r\n*** Failed to read from console, exiting. \r\n");
-                return Err(HandleError::Shutdown)
+                return Err(HandleInputError::Shutdown)
             }
         };
         let baud = match u32::from_str_radix(&line, 10) {
@@ -71,7 +76,8 @@ pub fn set_baudrate(state: &mut State, input_stream: &InputStream) -> Result<(),
     }
 }
 
-pub fn increase_baudrate(state: &mut State) -> Result<(), HandleError> {
+/// Selects the next highest standard baudrate as defined in [BAUDS], and sets the serial port settings to that. 
+fn increase_baudrate(state: &mut State) -> Result<(), HandleInputError> {
     let baud = get_baud(state)?;
     for i in BAUDS.iter().rev() {
         if *i > baud {
@@ -81,7 +87,8 @@ pub fn increase_baudrate(state: &mut State) -> Result<(), HandleError> {
     Ok(())
 }
 
-pub fn decrease_baudrate(state: &mut State) -> Result<(), HandleError> {
+/// Selects the next lowest standard baudrate as defined in [BAUDS], and sets the serial port settings to that. 
+fn decrease_baudrate(state: &mut State) -> Result<(), HandleInputError> {
     let baud = get_baud(state)?;
     for i in BAUDS.iter() {
         if *i < baud {
@@ -91,7 +98,8 @@ pub fn decrease_baudrate(state: &mut State) -> Result<(), HandleError> {
     Ok(())
 }
 
-fn update_baud(baud: u32, state: &mut State) -> Result<(), HandleError> {
+/// Helper function to set the baudrate, and showing an error message and throwing if failing to do so. 
+fn update_baud(baud: u32, state: &mut State) -> Result<(), HandleInputError> {
     match state.port.set_baud_rate(baud) {
         Ok(_) => { 
             println!("\r\n*** baud: {} ***\r\n", baud);
@@ -99,12 +107,19 @@ fn update_baud(baud: u32, state: &mut State) -> Result<(), HandleError> {
         },
         Err(_) => {
             println!("\r\n*** Failed to set baud \r\n");
-            return Err(HandleError::Recoverable);
+            return Err(HandleInputError::Recoverable);
         }
     }
 }
 
-pub fn change_databits(state: &mut State) -> Result<(), HandleError> {
+/// Cycles through to the next character length, showing an error message and 
+/// throwing is failing to set it in the settings. 
+/// 
+/// * [DataBits::Five] => [DataBits::Six]
+/// * [DataBits::Six] => [DataBits::Seven]
+/// * [DataBits::Seven] => [DataBits::Eight]
+/// * [DataBits::Eight] => [DataBits::Five]
+fn change_databits(state: &mut State) -> Result<(), HandleInputError> {
     let databits = get_databits(state)?;
 
     let new_databits = match databits {
@@ -121,12 +136,13 @@ pub fn change_databits(state: &mut State) -> Result<(), HandleError> {
         },
         Err(_) => {
             println!("\r\n*** Failed to write data bits \r\n");
-            Err(HandleError::Recoverable)
+            Err(HandleInputError::Recoverable)
         }
     }
 }
 
-pub fn change_stopbits(state: &mut State) -> Result<(), HandleError> {
+/// Switches between 1 and 2 stop bits in the serial port settings. 
+fn change_stopbits(state: &mut State) -> Result<(), HandleInputError> {
     let stopbits = get_stopbits(state)?;
 
     let new_stopbits = match stopbits {
@@ -141,12 +157,18 @@ pub fn change_stopbits(state: &mut State) -> Result<(), HandleError> {
         },
         Err(_) => {
             println!("\r\n*** Failed to write stop bits \r\n");
-            Err(HandleError::Recoverable)
+            Err(HandleInputError::Recoverable)
         }
     }
 }
 
-pub fn change_flowcontrol(state: &mut State) -> Result<(), HandleError>  {
+/// Cycles through to the next flow control option, showing an error message and 
+/// throwing is failing to set it in the settings. 
+/// 
+/// * [FlowControl::None] => [FlowControl::Software]
+/// * [FlowControl::Software] => [FlowControl::Hardware]
+/// * [FlowControl::Hardware] => [FlowControl::None]
+fn change_flowcontrol(state: &mut State) -> Result<(), HandleInputError>  {
     let flowcontrol = get_flow_control(state)?;
 
     let new_flowcontrol = match flowcontrol {
@@ -162,12 +184,18 @@ pub fn change_flowcontrol(state: &mut State) -> Result<(), HandleError>  {
         },
         Err(_) => {
             println!("\r\n*** Failed to write flow control \r\n");
-            Err(HandleError::Recoverable)
+            Err(HandleInputError::Recoverable)
         }
     }
 }
 
-pub fn change_parity(state: &mut State) -> Result<(), HandleError> {
+/// Cycles through to the next parity option, showing an error message and 
+/// throwing is failing to set it in the settings. 
+/// 
+/// * [Parity::None] => [Parity::Odd]
+/// * [Parity::Odd] => [Parity::Even]
+/// * [Parity::Even] => [Parity::None]
+fn change_parity(state: &mut State) -> Result<(), HandleInputError> {
     let parity = get_parity(state)?;
 
     let new_parity = match parity {
@@ -183,12 +211,13 @@ pub fn change_parity(state: &mut State) -> Result<(), HandleError> {
         },
         Err(_) => {
             println!("\r\n*** Failed to write parity \r\n");
-            Err(HandleError::Recoverable)
+            Err(HandleInputError::Recoverable)
         }
     }
 }
 
-pub fn pulse_dtr(state: &mut State) -> Result<(), HandleError> {
+/// Brings DTR (data terminal ready) down on the serial port for 1 second and brings it up. 
+fn pulse_dtr(state: &mut State) -> Result<(), HandleInputError> {
     match state.port.write_data_terminal_ready(false) {
         Ok(_) => {
             state.dtr = false;
@@ -196,7 +225,7 @@ pub fn pulse_dtr(state: &mut State) -> Result<(), HandleError> {
         },
         Err(_) => {
             println!("\r\n*** Failed to lower dtr \r\n");
-            return Err(HandleError::Recoverable)
+            return Err(HandleInputError::Recoverable)
         }
     }
     thread::sleep(Duration::from_secs(1));
@@ -208,12 +237,13 @@ pub fn pulse_dtr(state: &mut State) -> Result<(), HandleError> {
         },
         Err(_) => {
             println!("\r\n*** Failed to raise dtr \r\n");
-            Err(HandleError::Recoverable)
+            Err(HandleInputError::Recoverable)
         }
     }
 }
 
-pub fn toggle_dtr(state: &mut State) -> Result<(), HandleError>  {
+/// Toggles DTR (data terminal ready). 
+fn toggle_dtr(state: &mut State) -> Result<(), HandleInputError>  {
 
     match state.port.write_data_terminal_ready(!state.dtr) {
         Ok(_) => {
@@ -223,12 +253,13 @@ pub fn toggle_dtr(state: &mut State) -> Result<(), HandleError>  {
         },
         Err(_) => {
             println!("\r\n*** Failed to toggle dtr \r\n");
-            Err(HandleError::Recoverable)
+            Err(HandleInputError::Recoverable)
         }
     }
 }
 
-pub fn toggle_rts(state: &mut State) -> Result<(), HandleError>  {
+/// Toggles RTS (ready to send).
+fn toggle_rts(state: &mut State) -> Result<(), HandleInputError>  {
 
     match state.port.write_request_to_send(!state.rts) {
         Ok(_) => {
@@ -238,19 +269,21 @@ pub fn toggle_rts(state: &mut State) -> Result<(), HandleError>  {
         },
         Err(_) => {
             println!("\r\n*** Failed to toggle rts \r\n");
-            Err(HandleError::Recoverable)
+            Err(HandleInputError::Recoverable)
         }
     }
 }
 
-pub fn toggle_local_echo(state: &mut State) -> Result<(), HandleError>  {
+/// Toggles local echo on/off, terminal will start printing out all characters typed if on. 
+fn toggle_local_echo(state: &mut State) -> Result<(), HandleInputError>  {
     state.local_echo = !state.local_echo;
     let msg = if state.local_echo { "on" } else { "off" };
     println!("\r\n*** local echo: {} ***\r\n", msg);
     Ok(())
 }
 
-pub fn show_port_settings(state: &mut State) -> Result<(), HandleError> {
+/// Prints out a message of all the current serial port settings. 
+fn show_port_settings(state: &mut State) -> Result<(), HandleInputError> {
     let baud = get_baud(state)?;
     let flowcontrol = get_flow_control(state)?;
     let parity = get_parity(state)?;
@@ -276,7 +309,8 @@ pub fn show_port_settings(state: &mut State) -> Result<(), HandleError> {
     Ok(())
 }
 
-pub fn help_message(state: &mut State) -> Result<(), HandleError>  {
+/// Prints out a help message of all the key bindings for each command. 
+fn help_message(state: &mut State) -> Result<(), HandleInputError>  {
     println!("\r\n*** nanocom commands (all prefixed by [C-{}])\r\n\
         \r\n\
         *** [C-x] : Exit nanocom\r\n\
@@ -298,55 +332,56 @@ pub fn help_message(state: &mut State) -> Result<(), HandleError>  {
     Ok(())
 }
 
-pub fn get_baud(state: &mut State) -> Result<u32, HandleError> {
+/// Gets the current baud setting from the serial port. 
+fn get_baud(state: &mut State) -> Result<u32, HandleInputError> {
     match state.port.baud_rate() {
         Ok(v) => Ok(v),
         Err(_) => {
             println!("\r\n*** Failed to read baud \r\n");
-            Err(HandleError::Recoverable)
+            Err(HandleInputError::Recoverable)
         }
     }
 }
 
-pub fn get_flow_control(state: &mut State) -> Result<FlowControl, HandleError> {
+/// Gets the current flow control setting from the serial port. 
+fn get_flow_control(state: &mut State) -> Result<FlowControl, HandleInputError> {
     match state.port.flow_control() {
         Ok(v) => Ok(v),
         Err(_) => {
             println!("\r\n*** Failed to read flow control \r\n");
-            Err(HandleError::Recoverable)
+            Err(HandleInputError::Recoverable)
         }
     }
 }
 
-
-pub fn get_parity(state: &mut State) -> Result<Parity, HandleError> {
+/// Gets the current parity setting from the serial port. 
+fn get_parity(state: &mut State) -> Result<Parity, HandleInputError> {
     match state.port.parity() {
         Ok(v) => Ok(v),
         Err(_) => {
             println!("\r\n*** Failed to read parity \r\n");
-            Err(HandleError::Recoverable)
+            Err(HandleInputError::Recoverable)
         }
     }
 }
 
-
-pub fn get_databits(state: &mut State) -> Result<DataBits, HandleError> {
+/// Gets the current databits setting from the serial port. 
+fn get_databits(state: &mut State) -> Result<DataBits, HandleInputError> {
     match state.port.data_bits() {
         Ok(v) => Ok(v),
         Err(_) => {
             println!("\r\n*** Failed to write data bits \r\n");
-            Err(HandleError::Recoverable)
+            Err(HandleInputError::Recoverable)
         }
     }
 }
-
-
-pub fn get_stopbits(state: &mut State) -> Result<StopBits, HandleError> {
+/// Gets the current stop bits setting from the serial port. 
+fn get_stopbits(state: &mut State) -> Result<StopBits, HandleInputError> {
     match state.port.stop_bits() {
         Ok(v) => Ok(v),
         Err(_) => {
             println!("\r\n*** Failed to read stop bits \r\n");
-            Err(HandleError::Recoverable)
+            Err(HandleInputError::Recoverable)
         }
     }
 }

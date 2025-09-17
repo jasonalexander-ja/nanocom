@@ -5,12 +5,21 @@ use super::utils::{self, get_ascii_byte};
 
 use console::{Key, Term};
 
+/// Struct to hold the handle for the user key in polling routine and the receiver from that
+/// routine. 
 pub struct InputStream {
     _handle: JoinHandle<()>,
     char_recv: Receiver<Key>,
 }
 
 impl InputStream {
+
+    /// Started a new input stream service. 
+    /// 
+    /// #
+    /// 
+    /// * `escape` - The escape to enter command mode. 
+    /// * `shutdown_vals` - A list of bytes that would trigger a shutdown. 
     pub fn new(escape: u8, shutdown_vals: Vec<u8>) -> InputStream {
         let (char_sender, char_recv) = mpsc::channel::<Key>();
         let shutdown_chars: Vec<char> = shutdown_vals.iter()
@@ -22,6 +31,7 @@ impl InputStream {
         InputStream { _handle: handle, char_recv }
     }
 
+    /// Non-blocking polls the receivers for if a key has been received. 
     pub fn get_char(&self) -> Option<Result<Key, ()>> {
         match self.char_recv.try_recv() {
             Err(TryRecvError::Empty) => None,
@@ -30,6 +40,7 @@ impl InputStream {
         }
     }
     
+    /// Blocking gets a line from the user input. 
     pub fn get_line(&self) -> Result<String, ()> {
         let mut result: Vec<char>  = vec![];
         loop {
@@ -40,6 +51,8 @@ impl InputStream {
     }
 }
 
+/// Blocking gets a character from the character receiver and adds it to a buffer, returning whether 
+/// it was an enter. 
 fn get_char_blocking(result: &mut Vec<char>, char_recv: &Receiver<Key>) -> Result<bool, ()> {
     match char_recv.recv() {
         Ok(Key::Char(x)) => {
@@ -57,6 +70,9 @@ fn get_char_blocking(result: &mut Vec<char>, char_recv: &Receiver<Key>) -> Resul
     return Ok(false)
 }
 
+/// Main loop which sends any keys received from the user input to a channel. 
+/// * `escape` - The escape to enter command mode. 
+/// * `shutdown_vals` - A list of bytes that would trigger a shutdown (so it knows to exit). 
 fn input_stream_loop(escape: u8, shutdown_chars: Vec<char>, char_sender: Sender<Key>) {
     let term = Term::stdout();
     let mut is_escaped = false;
@@ -75,6 +91,7 @@ fn input_stream_loop(escape: u8, shutdown_chars: Vec<char>, char_sender: Sender<
     }
 }
 
+/// Converts a key in to the relevant byte or escape sequence (for Unix-like). 
 #[cfg(target_os = "windows")]
 pub fn get_key_sequence(key: Key) -> Vec<u8> {
     match key {
@@ -102,6 +119,7 @@ pub fn get_key_sequence(key: Key) -> Vec<u8> {
     }
 }
 
+/// Converts a key in to the relevant byte or escape sequence (for Windows). 
 #[cfg(not(target_os = "windows"))]
 pub fn get_key_sequence(key: Key) -> Vec<u8> {
     match key {

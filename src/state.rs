@@ -5,21 +5,35 @@ use super::utils::get_ascii_byte;
 use super::args::Args;
 
 
+/// Model containing all the settings and mutable aspects of the program state. 
 pub struct State {
+    /// The escape character to enter command mode. 
     pub escape: char,
+    /// The ascii byte code of the escape character to enter command mode. 
     pub escape_code: u8,
+    /// If true, initialize the serial port. 
     pub noinit: bool,
+    /// Don't reset the serial port. 
     pub noreset: bool,
+    /// Is the data terminal read up. 
     pub dtr: bool,
+    /// Is the ready to send up. 
     pub rts: bool,
+    /// Is program in command mode. 
     pub command_mode: bool,
+    /// Local echo (send characters to terminal as they're typed).
     pub local_echo: bool,
+    /// Name of the port on the OS.
     pub port_name: String,
+    /// The serial port wrapper. 
     pub port: Box<dyn SerialPort>,
+    /// Terminal interface wrapper. 
     pub term: Term
 }
 
 impl State {
+
+    /// Generates a new state from the given start arguments. 
     pub fn new_from_args(args: &Args) -> Result<State, ()> {
         let port = match get_serial_port(&args) {
             Ok(v) => v,
@@ -44,6 +58,7 @@ impl State {
         })
     }
 
+    /// Generates a human readable message string of all the configurable port settings. 
     pub fn port_settings(&self) -> serialport::Result<String> {
         let res = format!("*** baud: {}\r\n\
             **** flow: {}\r\n\
@@ -65,6 +80,7 @@ impl State {
     }
 }
 
+/// Tries to configure and open a serial port based on the passed settings. 
 fn get_serial_port(args: &Args) -> Result<Box<dyn SerialPort>, ()> {
     let port_builder = if args.noinit { 
         serialport::new(&args.port.clone(), args.baud)

@@ -3,19 +3,21 @@ use std::io::{self, Write};
 use crate::state::State;
 use crate::utils::put_char;
 use crate::utils::put_string;
-use crate::parser::Parsed;
-use crate::escape;
+use crate::serial_in::SerialData;
+use crate::escape_handlers;
 use crate::utils::TABS;
 
 
-pub fn print_data_in(data: Parsed, state: &mut State) -> Result<(), io::Error> {
+/// Dispatches the correct routine for printing data received from the serial port. 
+pub fn print_data_in(data: SerialData, state: &mut State) -> Result<(), io::Error> {
     match data {
-        Parsed::Nothing => return Ok(()),
-        Parsed::Char(c) => print_char(c, state),
-        Parsed::Escape(e) => escape::handle_escape(e, state)
+        SerialData::Nothing => return Ok(()),
+        SerialData::Char(c) => print_char(c, state),
+        SerialData::Escape(e) => escape_handlers::handle_escape(e, state)
     }
 }
 
+/// Prints a character or actions a control code. 
 pub fn print_char(key: u8, state: &mut State) -> Result<(), io::Error> {
     if key < 32 || key == 127 { return handle_control_char(key, state) }
     let keychar = key as char;
@@ -23,6 +25,7 @@ pub fn print_char(key: u8, state: &mut State) -> Result<(), io::Error> {
     Ok(())
 }
 
+/// Actions a control code on to the terminal. 
 fn handle_control_char(key: u8, state: &mut State) -> Result<(), io::Error> {
     let keychar = key as char;
     match keychar {
