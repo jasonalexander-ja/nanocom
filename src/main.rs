@@ -1,4 +1,5 @@
-use std::io::{ErrorKind, Write};
+use core::str;
+use std::io::Write;
 
 use clap::Parser;
 
@@ -14,6 +15,8 @@ pub mod utils;
 pub mod state;
 pub mod inputstream;
 pub mod terminal;
+pub mod parser;
+pub mod escape;
 
 
 fn main() {
@@ -32,46 +35,35 @@ fn main() {
     println!("Type [C-{}] [C-h] to see available commands", args.escape);
     println!("Terminal ready");
 
-    main_event_loop(&mut state);
+    let _ = main_event_loop(&mut state);
 }
 
-fn main_event_loop(state: &mut State) {
+fn main_event_loop(state: &mut State) -> Result<(), ()> {
     let input_stream = InputStream::new(state.escape_code, vec![24, 27]);
 
     loop {
-        if let Some(v) = input_stream.get_char() {
-            let c = match v {
-                Ok(c) => c,
-                Err(_) => {
-                    println!("*** Input stream disconected exiting. ");
-                    break;
-                }
-            };
-            let result = handle_input(c, state, &input_stream);
-            if let Err(HandleError::Shutdown) = result {
-                break;
-            }
-        }
-        match try_get_char(state) {
-            Ok(Some(c)) => terminal::print_char(c),
-            Ok(None) => continue,
-            Err(_) => break
-        }
+        poll_input(state, &input_stream)?;
+        let res = parser::poll_port_parse_data(state)?;
+        let _ = terminal::print_data_in(res, state);
     }
 }
 
-fn try_get_char(state: &mut State) -> Result<Option<u8>, ()> {
-    let mut buf = [0u8];
-    match state.port.read(&mut buf) {
-        Ok(0) => Ok(None),
-        Ok(1..) => Ok(Some(buf[0])),
-        Err(e) if e.kind() == ErrorKind::UnexpectedEof => Ok(None),
-        Err(e) if e.kind() == ErrorKind::TimedOut => Ok(None),
-        Err(e) => {
-            println!("\r\n*** Failed to read from port, exiting \r\n{} ", e);
-            Err(())
+fn poll_input(state: &mut State, input_stream: &InputStream) -> Result<(), ()> {
+    let v = match input_stream.get_char() {
+        Some(v) => v,
+        None => return  Ok(())
+    };
+    let c = match v {
+        Ok(c) => c,
+        Err(_) => {
+            println!("*** Input stream disconected exiting. ");
+            return Err(());
         }
+    };
+    if let Err(HandleError::Shutdown) = handle_input(c, state, &input_stream) {
+        return Err(());
     }
+    Ok(())
 }
 
 fn handle_input(key: Key, 
@@ -80,11 +72,11 @@ fn handle_input(key: Key,
 {
     let seq = inputstream::get_key_sequence(key);
     if seq.len() == 0 { return Ok(()); }
-    if vec![27, 91, 50, 56, 126] == seq  { return Ok(()); }
+    
     if commands::handle_escape(&seq, state, input_stream)? { return Ok(()) }
     if state.local_echo {
-        for i in seq.iter() {
-            terminal::print_char(*i);
+        for i in &seq {
+            let _ = terminal::print_char(*i, state);
         }
     }
     match state.port.write(&seq) {

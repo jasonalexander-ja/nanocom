@@ -33,21 +33,28 @@ impl InputStream {
     pub fn get_line(&self) -> Result<String, ()> {
         let mut result: Vec<char>  = vec![];
         loop {
-            match self.char_recv.recv() {
-                Ok(Key::Char(x)) => {
-                    result.push(x);
-                    utils::put_char(x);
-                },
-                Ok(Key::Backspace) => {
-                    let _ = result.pop();
-                    utils::del_char();
-                },
-                Ok(Key::Enter) =>  return Ok(result.iter().collect()),
-                Err(_) => return Err(()),
-                _ => continue
-            };
+            if get_char_blocking(&mut result, &self.char_recv)? {
+                return Ok(result.iter().collect())
+            }
         }
     }
+}
+
+fn get_char_blocking(result: &mut Vec<char>, char_recv: &Receiver<Key>) -> Result<bool, ()> {
+    match char_recv.recv() {
+        Ok(Key::Char(x)) => {
+            result.push(x);
+            utils::put_char(x);
+        },
+        Ok(Key::Backspace) => {
+            let _ = result.pop();
+            utils::del_char();
+        },
+        Ok(Key::Enter) =>  return Ok(true),
+        Err(_) => return Err(()),
+        _ => return Ok(false)
+    };
+    return Ok(false)
 }
 
 fn input_stream_loop(escape: u8, shutdown_chars: Vec<char>, char_sender: Sender<Key>) {
@@ -84,6 +91,7 @@ pub fn get_key_sequence(key: Key) -> Vec<u8> {
         Key::Tab => vec![9],
         Key::BackTab => vec![27, 91, 90],
         Key::Alt => vec![27, 91, 90],
+        
         Key::Del => vec![27, 91, 51, 126],
         Key::Insert => vec![27, 91, 50, 126],
         Key::PageUp => vec![27, 91, 53, 126],

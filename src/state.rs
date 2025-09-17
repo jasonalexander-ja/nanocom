@@ -1,6 +1,9 @@
+use console::Term;
 use serialport::SerialPort;
+
 use super::utils::get_ascii_byte;
 use super::args::Args;
+
 
 pub struct State {
     pub escape: char,
@@ -12,7 +15,8 @@ pub struct State {
     pub command_mode: bool,
     pub local_echo: bool,
     pub port_name: String,
-    pub port: Box<dyn SerialPort>
+    pub port: Box<dyn SerialPort>,
+    pub term: Term
 }
 
 impl State {
@@ -22,6 +26,7 @@ impl State {
             Err(_) => return Err(())
         };
         let escape_code = get_ascii_byte(args.escape.to_ascii_lowercase()) - 96;
+        let term = Term::stdout();
 
 
         Ok(State {
@@ -34,7 +39,8 @@ impl State {
             command_mode: false,
             local_echo: false,
             port_name: args.port.clone(),
-            port: port
+            port: port,
+            term
         })
     }
 
