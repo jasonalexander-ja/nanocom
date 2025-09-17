@@ -12,7 +12,7 @@ pub(crate) fn handle_escape(seq: &Vec<u8>, state: &mut State, input_stream: &Inp
     if seq.len() != 1 { return Ok(false); }
     let (key, keychar) = (seq[0], seq[0] as char);
     
-    if !keychar.is_ascii_control() { 
+    if !keychar.is_ascii_control() || (state.command_mode && key == state.escape_code) { 
         state.command_mode = false;
         return Ok(false); 
     }
@@ -169,9 +169,7 @@ fn change_stopbits(state: &mut State) -> Result<(), HandleInputError> {
 /// * [FlowControl::Software] => [FlowControl::Hardware]
 /// * [FlowControl::Hardware] => [FlowControl::None]
 fn change_flowcontrol(state: &mut State) -> Result<(), HandleInputError>  {
-    let flowcontrol = get_flow_control(state)?;
-
-    let new_flowcontrol = match flowcontrol {
+    let new_flowcontrol = match state.flow {
         FlowControl::None => FlowControl::Software,
         FlowControl::Software => FlowControl::Hardware,
         FlowControl::Hardware => FlowControl::None
@@ -179,14 +177,21 @@ fn change_flowcontrol(state: &mut State) -> Result<(), HandleInputError>  {
 
     match state.port.set_flow_control(new_flowcontrol) {
         Ok(_) => {
-            println!("\r\n*** flow: {} ***\r\n", new_flowcontrol);
-            Ok(())
+            state.flow = new_flowcontrol;
         },
         Err(_) => {
             println!("\r\n*** Failed to write flow control \r\n");
-            Err(HandleInputError::Recoverable)
+            return Err(HandleInputError::Recoverable)
         }
     }
+
+    // If the flow control isn't supported, serialport won't tell us, so lets check 
+    if new_flowcontrol != get_flow_control(state)? {
+        println!("\r\n*** {} flow control unsupported \r\n", new_flowcontrol);
+        return Ok(())
+    }
+    println!("\r\n*** flow: {} ***\r\n", new_flowcontrol);
+    Ok(())
 }
 
 /// Cycles through to the next parity option, showing an error message and 

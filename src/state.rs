@@ -1,5 +1,5 @@
 use console::Term;
-use serialport::SerialPort;
+use serialport::{DataBits, FlowControl, SerialPort};
 
 use super::utils::get_ascii_byte;
 use super::args::Args;
@@ -19,6 +19,10 @@ pub struct State {
     pub dtr: bool,
     /// Is the ready to send up. 
     pub rts: bool,
+    /// The current selected flow control, this may be different from what is being used
+    /// if it's unsupported by the serial device, this is mainly for tracking cycling through 
+    /// options. 
+    pub flow: FlowControl,
     /// Is program in command mode. 
     pub command_mode: bool,
     /// Local echo (send characters to terminal as they're typed).
@@ -50,6 +54,7 @@ impl State {
             noreset: args.noreset,
             dtr: false,
             rts: false,
+            flow: args.flow.to_serialport(),
             command_mode: false,
             local_echo: false,
             port_name: args.port.clone(),
@@ -82,6 +87,13 @@ impl State {
 
 /// Tries to configure and open a serial port based on the passed settings. 
 fn get_serial_port(args: &Args) -> Result<Box<dyn SerialPort>, ()> {
+    let databits = match args.databits {
+        5 => DataBits::Five,
+        6 => DataBits::Six,
+        7 => DataBits::Seven,
+        _ => DataBits::Eight,
+    };
+
     let port_builder = if args.noinit { 
         serialport::new(&args.port.clone(), args.baud)
             .preserve_dtr_on_open()
@@ -89,6 +101,7 @@ fn get_serial_port(args: &Args) -> Result<Box<dyn SerialPort>, ()> {
         serialport::new(&args.port.clone(), args.baud)
             .flow_control(args.flow.to_serialport())
             .parity(args.parity.to_serialport())
+            .data_bits(databits)
     };
 
     match port_builder.open() {

@@ -47,6 +47,18 @@ fn get_char(state: &mut State) -> Result<u8, ()> {
 }
 
 /// Dispatches the correct escape sequence parser for the type of escape sequence. 
+/// 
+/// If a `0x1B` byte is received from the serial port, this signifies the start of an escape sequence, 
+/// the next byte will determine the type; and thus how we parse/how the sequence is terminated. 
+/// 
+/// If byte 2 is:
+/// * `0x20..=0c2F` - this is an NF sequence and is terminated by a byte between `0x30..=0x7E`
+/// * `=0x5B` - this signals a CSI sequence and is terminated by a byte between `0x40..=0x7E`
+/// * `=0x5D` - this signals an OS command sequence and is terminated by either `0x07`, `0x9C`, `0x1B,0x5C`
+/// * `0x30..=0x7E` - this is a 2 byte command and can be terminated right there 
+/// 
+/// Anything else is an invalid sequence and will yield `EscapeSequence::Invalid`.
+/// 
 pub fn handle_escape(state: &mut State) -> Result<EscapeSequence, ()> {
     let seq = vec![0x1B];
     let v = get_char(state)?;
@@ -130,18 +142,41 @@ pub fn handle_nf(byte: u8, seq: Vec<u8>, state: &mut State) -> Result<EscapeSequ
 }
 
 /// Data from reading the serial port
+#[derive(Debug)]
 pub enum SerialData {
     Char(u8),
     Nothing,
     Escape(EscapeSequence)
 }
 
+
+
 impl SerialData {
     /// Gives the correct [SerialData] from [Key].
-    pub fn from_console_key(c: Key) -> Self {
+    #[cfg(not(target_os = "windows"))]
+    pub fn from_console_key(c: &Key) -> Self {
         match c {
-            Key::Char(c) => SerialData::Char(utils::get_ascii_byte(c)),
-            s => SerialData::Escape(EscapeSequence::from_console_key(s))
+            Key::Char(c) => SerialData::Char(utils::get_ascii_byte(*c)),
+            Key::Home => SerialData::Char(1),
+            Key::CtrlC => SerialData::Char(3),
+            Key::End => SerialData::Char(5),
+            Key::Tab => SerialData::Char(9),
+            Key::Enter => SerialData::Char(10),
+            Key::Escape => SerialData::Char(27),
+            Key::Backspace => SerialData::Char(127),
+            s => SerialData::Escape(EscapeSequence::from_console_key(s.clone()))
+        }
+    }
+    #[cfg(target_os = "windows")]
+    pub fn from_console_key(c: &Key) -> Self {
+        match c {
+            Key::Char(c) => SerialData::Char(utils::get_ascii_byte(*c)),
+            Key::CtrlC => SerialData::Char(3),
+            Key::Tab => SerialData::Char(9),
+            Key::Enter => SerialData::Char(13),
+            Key::Escape => SerialData::Char(27),
+            Key::Backspace => SerialData::Char(127),
+            s => SerialData::Escape(EscapeSequence::from_console_key(s.clone()))
         }
     }
 }
@@ -156,6 +191,7 @@ pub enum EscapeSequence {
     ArrowUp,
     ArrowDown,
     BackTab,
+    Tab,
     Alt,
     Home,
     End,
