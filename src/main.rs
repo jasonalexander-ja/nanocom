@@ -50,17 +50,14 @@ fn main_event_loop(state: &mut State) -> Result<(), ()> {
 
 fn poll_input(state: &mut State, input_stream: &InputStream) -> Result<(), ()> {
     let v = match input_stream.get_char() {
-        Some(v) => v,
-        None => return  Ok(())
-    };
-    let c = match v {
-        Ok(c) => c,
-        Err(_) => {
+        Some(Ok(v)) => v,
+        Some(Err(_)) => {
             println!("*** Input stream disconected exiting. ");
             return Err(());
-        }
+        },
+        None => return  Ok(())
     };
-    if let Err(HandleError::Shutdown) = handle_input(c, state, &input_stream) {
+    if let Err(HandleError::Shutdown) = handle_input(v, state, &input_stream) {
         return Err(());
     }
     Ok(())

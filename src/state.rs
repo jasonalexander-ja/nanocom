@@ -67,10 +67,10 @@ impl State {
 
 fn get_serial_port(args: &Args) -> Result<Box<dyn SerialPort>, ()> {
     let port_builder = if args.noinit { 
-        serialport::new(&args.port, args.baud)
+        serialport::new(&args.port.clone(), args.baud)
             .preserve_dtr_on_open()
     } else {
-        serialport::new(&args.port, args.baud)
+        serialport::new(&args.port.clone(), args.baud)
             .flow_control(args.flow.to_serialport())
             .parity(args.parity.to_serialport())
     };

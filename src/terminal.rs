@@ -15,7 +15,7 @@ pub fn print_data_in(data: Parsed, state: &mut State) -> Result<(), io::Error> {
 }
 
 pub fn print_char(key: u8, state: &mut State) -> Result<(), io::Error> {
-    if key < 32 { handle_control_char(key, state)?; }
+    if key < 32 || key == 127 { return handle_control_char(key, state) }
     let keychar = key as char;
     put_string(format!("{}", keychar));
     Ok(())

@@ -9,7 +9,8 @@ pub fn poll_port_parse_data(state: &mut State) -> Result<Parsed, ()> {
         None => return Ok(Parsed::Nothing)
     };
     let res = if v == 0x1B {
-        Parsed::Escape(handle_escape(state)?)
+        let res = handle_escape(state)?;
+        Parsed::Escape(res)
     } else {
         Parsed::Char(v)
     };
@@ -77,7 +78,7 @@ pub fn handle_csi(byte: u8, seq: Vec<u8>, state: &mut State) -> Result<EscapeSeq
     loop {
         let v = get_char(state)?;
         seq.push(v);
-        if let Some(0x40..0x7E) = seq.last() { 
+        if let Some(0x40..=0x7E) = seq.last() { 
             return Ok(match_csi(seq))
         }
     }
@@ -85,7 +86,7 @@ pub fn handle_csi(byte: u8, seq: Vec<u8>, state: &mut State) -> Result<EscapeSeq
 
 pub fn match_csi(seq: Vec<u8>) -> EscapeSequence {
     let len = seq.len();
-    if len != 3 || len != 4 {
+    if len != 3 && len != 4 {
         return EscapeSequence::End;
     }
     match seq[..seq.len()] {
@@ -110,7 +111,7 @@ pub fn handle_nf(byte: u8, seq: Vec<u8>, state: &mut State) -> Result<EscapeSequ
     loop {
         let v = get_char(state)?;
         seq.push(v);
-        if let Some(0x30..0x7E) = seq.last() {
+        if let Some(0x30..=0x7E) = seq.last() {
             return Ok(EscapeSequence::UnknownSeq(seq))
         }
     }
@@ -122,6 +123,7 @@ pub enum Parsed {
     Escape(EscapeSequence)
 }
 
+#[derive(Debug)]
 pub enum EscapeSequence {
     Invalid,
     UnknownSeq(Vec<u8>),

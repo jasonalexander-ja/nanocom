@@ -48,7 +48,7 @@ impl Args {
             noinit is      : {}\r\n\
             noreset is     : {}\r\n\
             ",
-            self.port,
+            &self.port,
             self.flow.show(),
             self.baud,
             self.parity.show(),
