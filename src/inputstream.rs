@@ -94,7 +94,7 @@ fn input_stream_loop(escape: u8, shutdown_chars: Vec<char>, char_sender: Sender<
         if let Err(_) = char_sender.send(key.clone()) { return };
         if let KeyIn::Char(c) = key {
             if shutdown_chars.contains(&(c as char)) && is_escaped { return }
-            is_escaped = c == escape;
+            is_escaped = !is_escaped && c == escape;
         } else {
             is_escaped = false;
         };
