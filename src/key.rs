@@ -14,7 +14,7 @@ pub enum KeyIn {
 
 
 impl KeyIn {
-    /// Gives the correct [SerialData] from [Key].
+    /// Gives the correct [KeyIn] from [Key].
     #[cfg(target_os = "windows")]
     pub fn from_console_key(c: &Key) -> Self {
         match c {
@@ -27,7 +27,8 @@ impl KeyIn {
             s => KeyIn::Escape(EscapeSequence::from_console_key(s.clone()))
         }
     }
-    /// Gives the correct [SerialData] from [Key].
+
+    /// Gives the correct [KeyIn] from [Key].
     #[cfg(not(target_os = "windows"))]
     pub fn from_console_key(c: &Key) -> Self {
         match c {
@@ -43,6 +44,9 @@ impl KeyIn {
         }
     }
 
+    /// Returns a vector of bytes containing either the byte of the single char 
+    /// if [KeyIn::Char] or an escape code sequence if [KeyIn::Escape], or an empty 
+    /// vec if [KeyIn::Nothing]. 
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
             Self::Char(c) => vec![*c],
@@ -95,6 +99,7 @@ impl EscapeSequence {
         }
     }
 
+    /// Generates the correct escape sequence of bytes
     pub fn to_bytes(&self) -> Vec<u8> {
         match self {
             Self::BackTab => vec![27, 91, 90],

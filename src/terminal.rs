@@ -27,12 +27,12 @@ pub fn print_char(key: u8, state: &mut State) -> Result<(), io::Error> {
 
 /// Actions a control code on to the terminal. 
 fn handle_control_char(key: u8, state: &mut State) -> Result<(), io::Error> {
-    let keychar = key as char;
-    match keychar {
-        '\x09' => state.term.move_cursor_right(TABS)?,
-        '\x7f' | '\x08' => state.term.clear_chars(1)?,
-        '\x0d' => state.term.write_line("")?,
-        '\x0A' => state.term.write(b"\x0A").map(|_| ())?,
+    match key {
+        1 => state.term.clear_screen()?,
+        9 => state.term.move_cursor_right(TABS)?,
+        127 | 8 => state.term.clear_chars(1)?,
+        13 => state.term.write_line("")?,
+        10 => state.term.write(b"\x0A").map(|_| ())?,
         _ => put_char(key as char),
     }
     state.term.flush()
