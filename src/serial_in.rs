@@ -1,21 +1,20 @@
 use std::io::ErrorKind;
 
-use console::Key;
 
-use crate::{state::State, utils};
+use crate::{state::State, key::KeyIn, key::EscapeSequence};
 
 
 /// Polls the serial port for any data, parsing any escape sequences. 
-pub fn poll_port_parse_data(state: &mut State) -> Result<SerialData, ()> {
+pub fn poll_port_parse_data(state: &mut State) -> Result<KeyIn, ()> {
     let v = match try_get_char(state)? {
         Some(c) => c,
-        None => return Ok(SerialData::Nothing)
+        None => return Ok(KeyIn::Nothing)
     };
     let res = if v == 0x1B {
         let res = handle_escape(state)?;
-        SerialData::Escape(res)
+        KeyIn::Escape(res)
     } else {
-        SerialData::Char(v)
+        KeyIn::Char(v)
     };
 
     Ok(res)
@@ -141,86 +140,3 @@ pub fn handle_nf(byte: u8, seq: Vec<u8>, state: &mut State) -> Result<EscapeSequ
     }
 }
 
-/// Data from reading the serial port
-#[derive(Debug)]
-pub enum SerialData {
-    Char(u8),
-    Nothing,
-    Escape(EscapeSequence)
-}
-
-
-
-impl SerialData {
-    /// Gives the correct [SerialData] from [Key].
-    #[cfg(not(target_os = "windows"))]
-    pub fn from_console_key(c: &Key) -> Self {
-        match c {
-            Key::Char(c) => SerialData::Char(utils::get_ascii_byte(*c)),
-            Key::Home => SerialData::Char(1),
-            Key::CtrlC => SerialData::Char(3),
-            Key::End => SerialData::Char(5),
-            Key::Tab => SerialData::Char(9),
-            Key::Enter => SerialData::Char(10),
-            Key::Escape => SerialData::Char(27),
-            Key::Backspace => SerialData::Char(127),
-            s => SerialData::Escape(EscapeSequence::from_console_key(s.clone()))
-        }
-    }
-    #[cfg(target_os = "windows")]
-    pub fn from_console_key(c: &Key) -> Self {
-        match c {
-            Key::Char(c) => SerialData::Char(utils::get_ascii_byte(*c)),
-            Key::CtrlC => SerialData::Char(3),
-            Key::Tab => SerialData::Char(9),
-            Key::Enter => SerialData::Char(13),
-            Key::Escape => SerialData::Char(27),
-            Key::Backspace => SerialData::Char(127),
-            s => SerialData::Escape(EscapeSequence::from_console_key(s.clone()))
-        }
-    }
-}
-
-/// Possible escape sequences returned from the parser. 
-#[derive(Debug)]
-pub enum EscapeSequence {
-    Invalid,
-    UnknownSeq(Vec<u8>),
-    ArrowLeft, 
-    ArrowRight,
-    ArrowUp,
-    ArrowDown,
-    BackTab,
-    Tab,
-    Alt,
-    Home,
-    End,
-    Del,
-    Insert,
-    PageUp,
-    PageDown,
-}
-
-impl EscapeSequence {
-
-    /// Gives the correct [EscapeSequence] from [Key].
-    pub fn from_console_key(c: Key) -> Self {
-        match c {
-            Key::UnknownEscSeq(s) => 
-                EscapeSequence::UnknownSeq(s.iter().map(|e| utils::get_ascii_byte(*e)).collect()),
-            Key::ArrowLeft => EscapeSequence::ArrowLeft,
-            Key::ArrowRight => EscapeSequence::ArrowRight,
-            Key::ArrowUp => EscapeSequence::ArrowUp,
-            Key::ArrowDown => EscapeSequence::ArrowDown,
-            Key::BackTab => EscapeSequence::BackTab,
-            Key::Alt => EscapeSequence::Alt,
-            Key::Home => EscapeSequence::Home,
-            Key::End => EscapeSequence::End,
-            Key::Del => EscapeSequence::Del,
-            Key::Insert => EscapeSequence::Insert,
-            Key::PageUp => EscapeSequence::PageUp,
-            Key::PageDown => EscapeSequence::PageDown,
-            _ => EscapeSequence::Invalid,
-        }
-    }
-}

@@ -3,17 +3,17 @@ use std::io::{self, Write};
 use crate::state::State;
 use crate::utils::put_char;
 use crate::utils::put_string;
-use crate::serial_in::SerialData;
+use crate::key::KeyIn;
 use crate::escape_handlers;
 use crate::utils::TABS;
 
 
 /// Dispatches the correct routine for printing data received from the serial port. 
-pub fn print_data_in(data: SerialData, state: &mut State) -> Result<(), io::Error> {
+pub fn print_data_in(data: KeyIn, state: &mut State) -> Result<(), io::Error> {
     match data {
-        SerialData::Nothing => return Ok(()),
-        SerialData::Char(c) => print_char(c, state),
-        SerialData::Escape(e) => escape_handlers::handle_escape(e, state)
+        KeyIn::Nothing => return Ok(()),
+        KeyIn::Char(c) => print_char(c, state),
+        KeyIn::Escape(e) => escape_handlers::handle_escape(e, state)
     }
 }
 

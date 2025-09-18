@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::serial_in::EscapeSequence;
+use crate::key::EscapeSequence;
 use crate::state::State;
 use crate::utils;
 

@@ -153,10 +153,9 @@ use std::io::Write;
 use clap::Parser;
 
 use args::Args;
-use console::Key;
 use state::State;
 use inputstream::InputStream;
-use serial_in::SerialData;
+use crate::key::KeyIn;
 
 /// Contains the types for parsing the args at startup. 
 pub mod args;
@@ -174,6 +173,8 @@ pub mod terminal;
 pub mod serial_in;
 /// Contains types and methods for acting upon escape sequences. 
 pub mod escape_handlers;
+/// Contains types and methods for handling keys in a standard way between platforms. 
+pub mod key;
 
 
 /// The entrypoint (duh)
@@ -226,16 +227,16 @@ fn poll_input(state: &mut State, input_stream: &InputStream) -> Result<(), ()> {
 }
 
 /// Handles a key received from the input. 
-fn handle_input(key: Key, 
+fn handle_input(key: KeyIn, 
     state: &mut State, 
     input_stream: &InputStream) -> Result<(), HandleInputError> 
 {
-    let seq = inputstream::get_key_sequence(&key);
+    let seq = key.to_bytes();
     if seq.len() == 0 { return Ok(()); }
     
     if commands::handle_escape(&seq, state, input_stream)? { return Ok(()) }
     if state.local_echo {
-        let _ = terminal::print_data_in(SerialData::from_console_key(&key), state);
+        let _ = terminal::print_data_in(key.clone(), state);
     }
     match state.port.write(&seq) {
         Ok(_) => Ok(()),
