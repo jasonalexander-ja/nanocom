@@ -1,8 +1,19 @@
 //! # nanocom 
 //! 
+//! [![crates.io](https://img.shields.io/crates/v/nanocom-term)](https://crates.io/crates/nanocom-term)
+//! [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+//! 
 //! A cross platform clone of [picocom](https://github.com/npat-efault/picocom) minimal dumb terminal emulator. 
 //! 
 //! Tested to work in Linux, mac os and Windows. 
+//! 
+//! ## Installation 
+//! 
+//! Ensure you have cargo installed. 
+//! 
+//! ```
+//! cargo install nanocom-term
+//! ```
 //! 
 //! ### Note to picocom/minicom users
 //! 
@@ -144,7 +155,6 @@
 //!     * We currently handle a few different cursor controls and tabs, a cursory glance reveals 
 //!     no ANSI escape sequence parsers that would really work well with this application, a custom 
 //!     one shouldn't be too difficult. 
-//! 
 //! 
 
 use core::str;
