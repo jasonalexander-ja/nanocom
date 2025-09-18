@@ -11,6 +11,7 @@ use console::Term;
 pub struct InputStream {
     _handle: JoinHandle<()>,
     char_recv: Receiver<KeyIn>,
+    _is_connected_sender: Sender<()>
 }
 
 impl InputStream {
@@ -23,13 +24,19 @@ impl InputStream {
     /// * `shutdown_vals` - A list of bytes that would trigger a shutdown. 
     pub fn new(escape: u8, shutdown_vals: Vec<u8>) -> InputStream {
         let (char_sender, char_recv) = mpsc::channel::<KeyIn>();
+        let (is_connected_sender, is_connected_rev) = mpsc::channel::<()>();
         let shutdown_chars: Vec<char> = shutdown_vals.iter()
             .map(|v| *v as char)
             .collect();
 
-        let handle = thread::spawn(move || input_stream_loop(escape, shutdown_chars, char_sender));
+        let handle = thread::spawn(move || 
+            input_stream_loop(escape, shutdown_chars, char_sender, is_connected_rev));
 
-        InputStream { _handle: handle, char_recv }
+        InputStream { 
+            _handle: handle, 
+            char_recv, 
+            _is_connected_sender: is_connected_sender 
+        }
     }
 
     /// Non-blocking polls the receivers for if a key has been received. 
@@ -74,10 +81,11 @@ fn get_char_blocking(result: &mut Vec<char>, char_recv: &Receiver<KeyIn>) -> Res
 /// Main loop which sends any keys received from the user input to a channel. 
 /// * `escape` - The escape to enter command mode. 
 /// * `shutdown_vals` - A list of bytes that would trigger a shutdown (so it knows to exit). 
-fn input_stream_loop(escape: u8, shutdown_chars: Vec<char>, char_sender: Sender<KeyIn>) {
+fn input_stream_loop(escape: u8, shutdown_chars: Vec<char>, char_sender: Sender<KeyIn>, is_connected_rev: Receiver<()>) {
     let term = Term::stdout();
     let mut is_escaped = false;
     loop {
+        if let Err(TryRecvError::Disconnected) = is_connected_rev.try_recv() { return };
         let c = match term.read_key_raw() {
             Ok(c) => c,
             Err(_) => return

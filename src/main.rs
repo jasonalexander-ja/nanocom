@@ -201,7 +201,7 @@ fn main() {
 /// Main event loop, continuously polls user and serial port input, processing and forwarding data between the 2. 
 /// Exiting when a quit command is received or an unrecoverable error is encountered. 
 fn main_event_loop(state: &mut State) -> Result<(), ()> {
-    let input_stream = InputStream::new(state.escape_code, vec![24, 27]);
+    let input_stream = InputStream::new(state.escape_code, vec![24, 17]);
 
     loop {
         poll_input(state, &input_stream)?;
