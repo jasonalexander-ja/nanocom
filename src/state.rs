@@ -101,6 +101,7 @@ fn get_serial_port(args: &Args) -> Result<Box<dyn SerialPort>, ()> {
         serialport::new(&args.port.clone(), args.baud)
             .flow_control(args.flow.to_serialport())
             .parity(args.parity.to_serialport())
+            .dtr_on_open(true)
             .data_bits(databits)
     };
 
