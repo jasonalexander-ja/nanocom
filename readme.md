@@ -156,3 +156,17 @@ Current roadmap is:
     no ANSI escape sequence parsers that would really work well with this application, a custom 
     one shouldn't be too difficult. 
 
+## Changes 
+
+### 0.1.2
+
+Forced DTR high on open by default. 
+
+### 0.1.1
+
+Just added crate docs, no code changes. 
+
+### 0.1.0 
+
+Initial release.
+

@@ -1,6 +1,6 @@
 [package]
 name = "nanocom-term"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Jason Alexander <jasonalexander.dev@gmail.com>"]
 edition = "2024"
 description = "Cross platform picocom-like serial terminal emulator."
